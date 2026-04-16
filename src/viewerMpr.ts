@@ -9,7 +9,7 @@ import {
   imageLoader,
 } from '@cornerstonejs/core';
 import { STACK_VIEWPORT_ID, MPR_VP_IDS } from './main';
-import { setStatus } from './ui';
+import { setStatusKey } from './ui';
 
 const { ViewportType, OrientationAxis } = Enums;
 
@@ -73,7 +73,7 @@ export async function showMpr(
     // only registers that metadata after an image has been loaded once, so
     // prefetch every slice first. This is cheap for local files and also
     // populates the image cache the streaming loader will then reuse.
-    setStatus(`Indexing ${series.imageIds.length} slices…`);
+    setStatusKey('status.indexStart', { total: series.imageIds.length });
     let loaded = 0;
     await Promise.all(
       series.imageIds.map((id) =>
@@ -82,7 +82,7 @@ export async function showMpr(
           .then(() => {
             loaded++;
             if (loaded % 20 === 0 || loaded === series.imageIds.length) {
-              setStatus(`Indexing ${loaded}/${series.imageIds.length} slices…`);
+              setStatusKey('status.indexing', { loaded, total: series.imageIds.length });
             }
           })
           .catch((e) => console.warn('slice load failed', id, e))

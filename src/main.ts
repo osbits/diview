@@ -30,7 +30,8 @@ import * as cornerstone from '@cornerstonejs/core';
 import { loadFiles, type SeriesEntry } from './loader';
 import { show2d } from './viewer2d';
 import { showMpr } from './viewerMpr';
-import { initUi, renderSeriesList, setStatus } from './ui';
+import { initUi, renderSeriesList, setStatus, setStatusKey } from './ui';
+import { t, applyStaticStrings, getLang } from './i18n';
 
 export const RENDERING_ENGINE_ID = 'diview-engine';
 export const STACK_VIEWPORT_ID = 'stack-vp';
@@ -43,6 +44,12 @@ export const STACK_TOOLGROUP_ID = 'tg-stack';
 export const MPR_TOOLGROUP_ID = 'tg-mpr';
 
 async function bootstrap() {
+  // Localize everything with data-i18n / data-i18n-title attributes, and
+  // reflect the detected browser language in the footer.
+  applyStaticStrings();
+  const langTag = document.getElementById('lang-tag');
+  if (langTag) langTag.textContent = getLang().toUpperCase();
+
   // Wire dicom-image-loader to cornerstone + dicom-parser.
   (cornerstoneDICOMImageLoader as any).external.cornerstone = cornerstone;
   (cornerstoneDICOMImageLoader as any).external.dicomParser = dicomParser;
@@ -152,26 +159,32 @@ async function bootstrap() {
     if (!s) return;
     state.activeId = uid;
     renderSeriesList(state.series, state.activeId, onSeriesSelected);
-    setStatus(`Loading ${s.modality} · ${s.slices.length} image${s.slices.length > 1 ? 's' : ''}…`);
+    const imgCountKey = s.slices.length === 1 ? 'series.images.one' : 'series.images.many';
+    setStatusKey('status.loading', { modality: s.modality, count: t(imgCountKey, { n: s.slices.length }) });
     try {
       if (s.kind === 'volume') {
         await showMpr(engine, mprTG, s);
       } else {
         await show2d(engine, stackTG, s);
       }
-      setStatus(`${s.modality} · ${s.description} · ${s.slices.length} slice${s.slices.length > 1 ? 's' : ''}`);
+      const sliceCountKey = s.slices.length === 1 ? 'series.slices.one' : 'series.slices.many';
+      setStatusKey('status.loaded', {
+        modality: s.modality,
+        desc: s.description,
+        count: t(sliceCountKey, { n: s.slices.length }),
+      });
     } catch (e: any) {
       console.error(e);
-      setStatus(`Error: ${e?.message || e}`);
+      setStatusKey('status.error', { msg: e?.message || e });
     }
   }
 
   async function handleFiles(files: File[]) {
     if (!files.length) return;
-    setStatus(`Parsing ${files.length} file${files.length > 1 ? 's' : ''}…`);
+    setStatusKey(files.length === 1 ? 'status.parsing.one' : 'status.parsing.many', { n: files.length });
     const added = await loadFiles(files);
     if (!added.length) {
-      setStatus('No DICOM files found.');
+      setStatusKey('status.noDicom');
       return;
     }
     // Merge with existing state (dedupe by seriesUID).
@@ -181,16 +194,15 @@ async function bootstrap() {
     renderSeriesList(state.series, state.activeId, onSeriesSelected);
     // Auto-open the first series if nothing is selected.
     if (!state.activeId) await onSeriesSelected(state.series[0].seriesInstanceUID);
-    else setStatus(`${state.series.length} series loaded`);
+    else setStatusKey('status.seriesLoaded', { n: state.series.length });
   }
 
   initUi(engine, { stackToolGroupId: STACK_TOOLGROUP_ID, mprToolGroupId: MPR_TOOLGROUP_ID }, handleFiles);
   renderSeriesList(state.series, state.activeId, onSeriesSelected);
-  setStatus('Ready. Drop DICOM files or a folder to begin.');
+  setStatusKey('status.ready');
 }
 
 bootstrap().catch((e) => {
   console.error(e);
-  const el = document.getElementById('status');
-  if (el) el.textContent = `Init failed: ${e?.message || e}`;
+  setStatusKey('status.initFail', { msg: e?.message || e });
 });

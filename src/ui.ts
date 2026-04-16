@@ -3,23 +3,45 @@ import { ToolGroupManager, WindowLevelTool, LengthTool, AngleTool, PanTool, Zoom
 import { Enums as csToolsEnums } from '@cornerstonejs/tools';
 import type { RenderingEngine } from '@cornerstonejs/core';
 import type { SeriesEntry } from './loader';
+import { t, applyStaticStrings, onLangChange, toggleLang, getLang } from './i18n';
 
 type Ids = { stackToolGroupId: string; mprToolGroupId: string };
 
+// For raw strings that won't auto-retranslate. Prefer setStatusKey when
+// the message is known ahead of time.
 export function setStatus(text: string) {
+  lastStatus = null;
   const el = document.getElementById('status');
   if (el) el.textContent = text;
 }
+
+// i18n-aware status setter. Stores the key so a language switch can replay it.
+export function setStatusKey(key: string, vars?: Record<string, string | number>) {
+  lastStatus = { key, vars };
+  const el = document.getElementById('status');
+  if (el) el.textContent = t(key, vars);
+}
+let lastStatus: { key: string; vars?: Record<string, string | number> } | null = null;
 
 export function initUi(engine: RenderingEngine, ids: Ids, onFiles: (files: File[]) => void) {
   const toolbar = document.getElementById('toolbar')!;
   const dropzone = document.getElementById('dropzone')!;
 
-  const mkBtn = (label: string, onClick: () => void, opts: { active?: boolean; title?: string } = {}) => {
+  // mkBtn accepts i18n keys so a language switch can re-translate buttons
+  // via applyStaticStrings() without rebuilding the toolbar.
+  const mkBtn = (
+    labelKey: string,
+    onClick: () => void,
+    opts: { active?: boolean; titleKey?: string } = {},
+  ) => {
     const b = document.createElement('button');
     b.className = 'tool' + (opts.active ? ' active' : '');
-    b.textContent = label;
-    if (opts.title) b.title = opts.title;
+    b.textContent = t(labelKey);
+    b.dataset.i18n = labelKey;
+    if (opts.titleKey) {
+      b.title = t(opts.titleKey);
+      b.dataset.i18nTitle = opts.titleKey;
+    }
     b.addEventListener('click', onClick);
     return b;
   };
@@ -54,15 +76,15 @@ export function initUi(engine: RenderingEngine, ids: Ids, onFiles: (files: File[
     }
   }
 
-  const wlBtn = mkBtn('W/L', () => setActivePrimary(WindowLevelTool.toolName, wlBtn), { title: 'Window/Level — primary drag' });
-  const lenBtn = mkBtn('Length', () => setActivePrimary(LengthTool.toolName, lenBtn), { title: 'Length measurement' });
-  const angBtn = mkBtn('Angle', () => setActivePrimary(AngleTool.toolName, angBtn), { title: 'Angle measurement' });
-  const xhairBtn = mkBtn('Crosshair', () => setActivePrimary(CrosshairsTool.toolName, xhairBtn), { active: true, title: 'MPR crosshair / reslice (volume only)' });
+  const wlBtn = mkBtn('tool.wl', () => setActivePrimary(WindowLevelTool.toolName, wlBtn), { titleKey: 'tool.wl.title' });
+  const lenBtn = mkBtn('tool.length', () => setActivePrimary(LengthTool.toolName, lenBtn), { titleKey: 'tool.length.title' });
+  const angBtn = mkBtn('tool.angle', () => setActivePrimary(AngleTool.toolName, angBtn), { titleKey: 'tool.angle.title' });
+  const xhairBtn = mkBtn('tool.crosshair', () => setActivePrimary(CrosshairsTool.toolName, xhairBtn), { active: true, titleKey: 'tool.crosshair.title' });
   primaryToolButtons.push(wlBtn, lenBtn, angBtn, xhairBtn);
   toolbar.append(xhairBtn, wlBtn, lenBtn, angBtn);
 
   // Invert.
-  toolbar.appendChild(mkBtn('Invert', () => {
+  toolbar.appendChild(mkBtn('tool.invert', () => {
     for (const vp of engine.getViewports()) {
       try {
         const props: any = (vp as any).getProperties();
@@ -70,14 +92,14 @@ export function initUi(engine: RenderingEngine, ids: Ids, onFiles: (files: File[
         vp.render();
       } catch {}
     }
-  }, { title: 'Invert grayscale' }));
+  }, { titleKey: 'tool.invert.title' }));
 
   // Reset.
-  toolbar.appendChild(mkBtn('Reset', () => {
+  toolbar.appendChild(mkBtn('tool.reset', () => {
     for (const vp of engine.getViewports()) {
       try { (vp as any).resetCamera?.(); (vp as any).resetProperties?.(); vp.render(); } catch {}
     }
-  }, { title: 'Reset view & W/L' }));
+  }, { titleKey: 'tool.reset.title' }));
 
   // Single "Open" button opens the native file picker. Folders are loaded
   // by dragging them onto the window (handled by the drop listener below).
@@ -102,29 +124,59 @@ export function initUi(engine: RenderingEngine, ids: Ids, onFiles: (files: File[
   stage.addEventListener('drop', onDrop);
   window.addEventListener('dragover', (e) => e.preventDefault());
   window.addEventListener('drop', (e) => e.preventDefault());
+
+  // Language toggle — clicking the footer tag flips EN ↔ DE and re-applies
+  // translations to every tagged element in the DOM.
+  const langTag = document.getElementById('lang-tag') as HTMLElement | null;
+  if (langTag) {
+    langTag.classList.add('lang-toggle');
+    langTag.title = 'Switch language · Sprache umschalten';
+    langTag.addEventListener('click', () => toggleLang());
+  }
+  onLangChange(() => {
+    applyStaticStrings();
+    // Rebuild the series list so pluralized / kind labels pick up the new lang.
+    reRenderSeriesListFromHost();
+    // Replay the last status message in the new language.
+    if (lastStatus) {
+      const el = document.getElementById('status');
+      if (el) el.textContent = t(lastStatus.key, lastStatus.vars);
+    }
+  });
 }
+
+// The series-list render callback is kept here so onLangChange can trigger
+// a redraw using the most recent state captured by the host in main.ts.
+let lastRender: null | (() => void) = null;
+function reRenderSeriesListFromHost() { lastRender?.(); }
 
 export function renderSeriesList(
   series: SeriesEntry[],
   activeId: string | null,
   onSelect: (uid: string) => void
 ) {
+  // Remember the last call so a language switch can re-render without needing
+  // the host to plumb through its state again.
+  lastRender = () => renderSeriesList(series, activeId, onSelect);
+
   const list = document.getElementById('series-list')!;
   list.innerHTML = '';
   document.body.classList.toggle('has-data', series.length > 0);
   if (!series.length) {
     const hint = document.createElement('div');
     hint.style.cssText = 'color:var(--muted);padding:10px;font-size:12px;';
-    hint.textContent = 'No series loaded.';
+    hint.textContent = t('sidebar.empty');
     list.appendChild(hint);
     return;
   }
   for (const s of series) {
     const d = document.createElement('div');
     d.className = 'series' + (s.seriesInstanceUID === activeId ? ' active' : '');
+    const imgCount = t(s.slices.length === 1 ? 'series.images.one' : 'series.images.many', { n: s.slices.length });
+    const kind = t(s.kind === 'volume' ? 'series.kind.mpr' : 'series.kind.2d');
     d.innerHTML = `
       <div class="title">${escapeHtml(s.description || 'Series')}</div>
-      <div class="meta">${s.modality} · ${s.slices.length} image${s.slices.length > 1 ? 's' : ''} · ${s.kind === 'volume' ? 'MPR' : '2D'}</div>
+      <div class="meta">${escapeHtml(s.modality)} · ${escapeHtml(imgCount)} · ${escapeHtml(kind)}</div>
     `;
     d.addEventListener('click', () => onSelect(s.seriesInstanceUID));
     list.appendChild(d);

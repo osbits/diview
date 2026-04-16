@@ -95,9 +95,12 @@ main {
 }
 .dz-open:hover { background: var(--accent); }
 
-/* Only show the small top-bar Open button once something is loaded. */
+/* Hide header tools + small Open button on the empty landing screen; they
+   reappear once the first series has been loaded. */
 #topbar .open-top { display: none; }
+#toolbar { display: none; }
 body.has-data #topbar .open-top { display: inline-flex; }
+body.has-data #toolbar { display: flex; }
 
 #status {
   position: fixed; bottom: 6px; right: 10px;
@@ -107,5 +110,11 @@ body.has-data #topbar .open-top { display: inline-flex; }
 #version {
   position: fixed; bottom: 6px; left: 10px;
   font-size: 11px; color: var(--muted);
-  pointer-events: none; font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
 }
+#lang-tag.lang-toggle {
+  cursor: pointer; padding: 1px 6px; border-radius: 4px;
+  border: 1px solid var(--border); color: var(--text);
+  pointer-events: auto; user-select: none;
+}
+#lang-tag.lang-toggle:hover { border-color: var(--accent); color: var(--accent); }

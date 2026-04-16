@@ -11,7 +11,7 @@
       <div class="brand">diview</div>
       <div id="toolbar"></div>
       <div class="spacer"></div>
-      <label for="file-input" class="btn open-top" title="Pick a folder of DICOM slices, or drag files / a folder onto the window">Open</label>
+      <label for="file-input" class="btn open-top" data-i18n="open.top" data-i18n-title="open.top.title">Open</label>
       <input id="file-input" type="file" multiple webkitdirectory hidden />
     </header>
     <main>
@@ -19,9 +19,9 @@
       <section id="stage">
         <div id="dropzone">
           <div class="dz-inner">
-            <h1>Drop DICOM files or a folder</h1>
-            <p>2D X-ray &middot; CT with axial / sagittal / coronal MPR</p>
-            <label for="file-input" class="btn dz-open" title="Pick a folder of DICOM slices">Open…</label>
+            <h1 data-i18n="dz.title">Drop DICOM files or a folder</h1>
+            <p data-i18n="dz.subtitle">2D X-ray &middot; CT with axial / sagittal / coronal MPR</p>
+            <label for="file-input" class="btn dz-open" data-i18n="open.dz" data-i18n-title="open.dz.title">Open…</label>
           </div>
         </div>
         <div id="layout-2d" class="layout hidden">
@@ -34,7 +34,7 @@
         </div>
       </section>
     </main>
-    <div id="version">v260415</div>
+    <div id="version">v260415 · <span id="lang-tag">EN</span></div>
     <div id="status"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
