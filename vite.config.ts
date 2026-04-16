@@ -1,5 +1,25 @@
 import { defineConfig, type Plugin } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
+import { renameSync, existsSync, unlinkSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+// Rename the built dist/index.html to dist/diview.html so the shipped
+// artifact has a friendlier filename.
+function renameToDiview(): Plugin {
+  return {
+    name: 'diview:rename-output',
+    apply: 'build',
+    closeBundle() {
+      const outDir = resolve(__dirname, 'dist');
+      const from = resolve(outDir, 'index.html');
+      const to = resolve(outDir, 'diview.html');
+      if (existsSync(from)) {
+        if (existsSync(to)) unlinkSync(to);
+        renameSync(from, to);
+      }
+    },
+  };
+}
 
 // The cornerstoneDICOMImageLoader UMD bundle computes its webpack publicPath
 // from document.currentScript.src, which is empty for an inline script, and
@@ -24,7 +44,7 @@ function fixWebpackPublicPath(): Plugin {
 
 export default defineConfig({
   base: './',
-  plugins: [fixWebpackPublicPath(), viteSingleFile()],
+  plugins: [fixWebpackPublicPath(), viteSingleFile(), renameToDiview()],
   build: {
     target: 'es2020',
     assetsInlineLimit: 100000000,

@@ -22,12 +22,12 @@ Drag DICOM files or a folder onto the window. A multi-slice CT / MR series is au
 
 ```bash
 npm run build
-# -> dist/index.html  (one file, ~2.8 MB, all JS + CSS inlined)
+# -> dist/diview.html  (one file, ~2.8 MB, all JS + CSS inlined)
 ```
 
 You can now:
 
-- Open `dist/index.html` directly in a browser (`file://…`)
+- Open `dist/diview.html` directly in a browser (`file://…`)
 - Serve it from any static host: `npx http-server dist/`
 - Email it or drop it on a USB stick — nothing else required
 
