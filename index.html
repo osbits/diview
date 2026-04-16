@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>diview — DICOM viewer</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header id="topbar">
+      <div class="brand">diview</div>
+      <div id="toolbar"></div>
+      <div class="spacer"></div>
+      <label class="btn">
+        Open files
+        <input id="file-input" type="file" multiple accept=".dcm,application/dicom,*/*" hidden />
+      </label>
+      <label class="btn">
+        Open folder
+        <input id="folder-input" type="file" webkitdirectory multiple hidden />
+      </label>
+    </header>
+    <main>
+      <aside id="sidebar"><div id="series-list"></div></aside>
+      <section id="stage">
+        <div id="dropzone">
+          <div class="dz-inner">
+            <h1>Drop DICOM files or a folder</h1>
+            <p>2D X-ray &middot; CT with axial / sagittal / coronal MPR</p>
+          </div>
+        </div>
+        <div id="layout-2d" class="layout hidden">
+          <div class="viewport" data-vp="stack"></div>
+        </div>
+        <div id="layout-mpr" class="layout hidden">
+          <div class="viewport" data-vp="axial"><span class="vp-label">AXIAL</span></div>
+          <div class="viewport" data-vp="sagittal"><span class="vp-label">SAGITTAL</span></div>
+          <div class="viewport" data-vp="coronal"><span class="vp-label">CORONAL</span></div>
+        </div>
+      </section>
+    </main>
+    <div id="version">v260415</div>
+    <div id="status"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
