@@ -11,14 +11,8 @@
       <div class="brand">diview</div>
       <div id="toolbar"></div>
       <div class="spacer"></div>
-      <label class="btn">
-        Open files
-        <input id="file-input" type="file" multiple accept=".dcm,application/dicom,*/*" hidden />
-      </label>
-      <label class="btn">
-        Open folder
-        <input id="folder-input" type="file" webkitdirectory multiple hidden />
-      </label>
+      <label for="file-input" class="btn open-top" title="Pick a folder of DICOM slices, or drag files / a folder onto the window">Open</label>
+      <input id="file-input" type="file" multiple webkitdirectory hidden />
     </header>
     <main>
       <aside id="sidebar"><div id="series-list"></div></aside>
@@ -27,6 +21,7 @@
           <div class="dz-inner">
             <h1>Drop DICOM files or a folder</h1>
             <p>2D X-ray &middot; CT with axial / sagittal / coronal MPR</p>
+            <label for="file-input" class="btn dz-open" title="Pick a folder of DICOM slices">Open…</label>
           </div>
         </div>
         <div id="layout-2d" class="layout hidden">

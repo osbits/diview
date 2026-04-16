@@ -79,11 +79,10 @@ export function initUi(engine: RenderingEngine, ids: Ids, onFiles: (files: File[
     }
   }, { title: 'Reset view & W/L' }));
 
-  // File + folder inputs.
+  // Single "Open" button opens the native file picker. Folders are loaded
+  // by dragging them onto the window (handled by the drop listener below).
   const fileInput = document.getElementById('file-input') as HTMLInputElement;
-  const folderInput = document.getElementById('folder-input') as HTMLInputElement;
   fileInput.addEventListener('change', () => onFiles(Array.from(fileInput.files || [])));
-  folderInput.addEventListener('change', () => onFiles(Array.from(folderInput.files || [])));
 
   // Drag & drop on the stage / dropzone.
   const stage = document.getElementById('stage')!;
@@ -112,6 +111,7 @@ export function renderSeriesList(
 ) {
   const list = document.getElementById('series-list')!;
   list.innerHTML = '';
+  document.body.classList.toggle('has-data', series.length > 0);
   if (!series.length) {
     const hint = document.createElement('div');
     hint.style.cssText = 'color:var(--muted);padding:10px;font-size:12px;';

@@ -85,8 +85,19 @@ main {
 }
 #dropzone.hidden { display: none; }
 #dropzone.dragover { background: #16202c; }
-.dz-inner { text-align: center; color: var(--muted); }
+.dz-inner { text-align: center; color: var(--muted); pointer-events: auto; }
 .dz-inner h1 { color: var(--text); margin: 0 0 6px; font-size: 18px; font-weight: 600; }
+.dz-inner p { margin: 0 0 18px; }
+.dz-open {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 40px; padding: 0 22px; font-size: 14px;
+  background: var(--accent-2); color: #fff; border-color: var(--accent);
+}
+.dz-open:hover { background: var(--accent); }
+
+/* Only show the small top-bar Open button once something is loaded. */
+#topbar .open-top { display: none; }
+body.has-data #topbar .open-top { display: inline-flex; }
 
 #status {
   position: fixed; bottom: 6px; right: 10px;
