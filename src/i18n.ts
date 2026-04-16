@@ -46,6 +46,8 @@ const EN: Dict = {
   'status.noDicom': 'No DICOM files found.',
   'status.error': 'Error: {msg}',
   'status.initFail': 'Init failed: {msg}',
+
+  'credit.prefix': 'contributed by',
 };
 
 const DE: Dict = {
@@ -91,6 +93,8 @@ const DE: Dict = {
   'status.noDicom': 'Keine DICOM-Dateien gefunden.',
   'status.error': 'Fehler: {msg}',
   'status.initFail': 'Initialisierung fehlgeschlagen: {msg}',
+
+  'credit.prefix': 'beigetragen von',
 };
 
 const DICTS: Record<string, Dict> = { en: EN, de: DE };
