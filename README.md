@@ -59,6 +59,26 @@ src/
 vite.config.ts             single-file build, alias stubs
 ```
 
+## Releasing
+
+The single source of truth for the version is the top-level `VERSION` file
+(e.g. `260415`). It's injected into the built HTML at build time
+(Vite `%VITE_APP_VERSION%`) and read by the CI workflow.
+
+1. Edit `VERSION` (e.g. `260415` → `260501`)
+2. Commit + push to `main` (or trigger `.github/workflows/release.yml`
+   manually via **Run workflow**)
+
+The workflow will:
+
+- read `VERSION`
+- check whether a GitHub Release tagged `v<version>` already exists
+- if not: install, build, create the tag, and publish a new Release with
+  `dist/diview.html` attached
+- if yes: exit cleanly without doing anything
+
+So every push is safe — a new Release is only cut when the version changes.
+
 ## Scope
 
 v1 intentionally omits volume rendering, segmentation, DICOMweb / PACS networking, and measurement export. The Cornerstone3D foundation supports all of these and can be layered on later.

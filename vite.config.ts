@@ -1,7 +1,13 @@
 import { defineConfig, type Plugin } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
-import { renameSync, existsSync, unlinkSync } from 'node:fs';
+import { renameSync, existsSync, unlinkSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+
+// Single source of truth for the application version: the VERSION file at
+// the repo root. The CI workflow reads the same file to decide whether to
+// cut a GitHub Release.
+const APP_VERSION = readFileSync(resolve(__dirname, 'VERSION'), 'utf8').trim() || 'dev';
+process.env.VITE_APP_VERSION = APP_VERSION;
 
 // Rename the built dist/index.html to dist/diview.html so the shipped
 // artifact has a friendlier filename.

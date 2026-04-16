@@ -1,0 +1,115 @@
+name: Release
+
+# Cuts a GitHub Release (with the built dist/diview.html attached) whenever
+# the VERSION file at the repo root points at a version that doesn't yet have
+# a matching `v<version>` release. Harmless no-op on every other push.
+#
+# To ship a new release:
+#   1. Edit VERSION (e.g. 260415 -> 260501)
+#   2. Commit + push to main (or trigger the workflow manually)
+# The workflow will build, tag, and publish. If the tag/release already
+# exists it exits cleanly without doing anything.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'VERSION'
+      - 'src/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - '.github/workflows/release.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need tags to check existing releases
+
+      - name: Read VERSION
+        id: ver
+        run: |
+          v="$(tr -d '[:space:]' < VERSION)"
+          if [ -z "$v" ]; then
+            echo "::error::VERSION file is empty"
+            exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "tag=v$v"    >> "$GITHUB_OUTPUT"
+          echo "diview version $v"
+
+      - name: Check whether release already exists
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.ver.outputs.tag }}"
+          if gh release view "$tag" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release $tag already exists — nothing to do."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release $tag does not exist — will build."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node.js
+        if: steps.check.outputs.exists == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: steps.check.outputs.exists == 'false'
+        run: npm ci
+
+      - name: Build single-file viewer
+        if: steps.check.outputs.exists == 'false'
+        run: npm run build
+
+      - name: Verify build artefact
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          test -f dist/diview.html || { echo "::error::dist/diview.html not produced"; exit 1; }
+          size=$(wc -c < dist/diview.html)
+          echo "dist/diview.html: $size bytes"
+
+      - name: Create tag
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.ver.outputs.tag }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "Tag $tag already exists locally/remotely — skipping tag creation."
+          else
+            git tag -a "$tag" -m "diview $tag"
+            git push origin "$tag"
+          fi
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.ver.outputs.tag }}"
+          gh release create "$tag" dist/diview.html \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title  "diview $tag" \
+            --notes  "Single-file DICOM viewer. Download \`diview.html\` and open it in any modern browser."
