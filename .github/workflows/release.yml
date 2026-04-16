@@ -111,5 +111,5 @@ jobs:
           tag="${{ steps.ver.outputs.tag }}"
           gh release create "$tag" dist/diview.html \
             --repo "${GITHUB_REPOSITORY}" \
-            --title  "diview $tag" \
+            --title  "$tag" \
             --notes  "Single-file DICOM viewer. Download \`diview.html\` and open it in any modern browser."
